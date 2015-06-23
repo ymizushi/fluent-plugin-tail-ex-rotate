@@ -523,15 +523,16 @@ class TailExRotateInputTest < Test::Unit::TestCase
     end
   end
 
-  # Ensure that no fatal exception is raised when a file is missing and that
-  # files that do exist are still tailed as expected.
+  # Ensure that 
+  # (1) no fatal exception is raised when a file is missing and 
+  # (2) existent files are still tailed as expected.
   def test_missing_file
     File.open("#{TMP_DIR}/tail.txt", "w") {|f|
       f.puts "test1"
       f.puts "test2"
     }
 
-    # Try two different configs - one with read_from_head and one without,
+    # Try two different configs - one with read_from_head and one without
     # since their interactions with the filesystem differ.
     config1 = %[
       tag t1
