@@ -368,7 +368,7 @@ class TailExRotateInputTest < Test::Unit::TestCase
   end
 
   # * path test
-  # TODO: Clean up tests
+  # TODO: Cleanup tests
   EX_RORATE_WAIT = 0
 
   EX_CONFIG = %[
