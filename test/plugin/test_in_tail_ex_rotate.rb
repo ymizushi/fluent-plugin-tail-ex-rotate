@@ -45,7 +45,7 @@ class TailExRotateInputTest < Test::Unit::TestCase
     assert_equal 18000, d.instance.expand_rotate_time
   end
 
-  # TODO: Should using more better approach instead of sleep wait
+  # TODO: Should use much better approach instead of sleep
 
   def test_emit
     File.open("#{TMP_DIR}/tail.txt", "w") {|f|

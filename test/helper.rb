@@ -1,4 +1,4 @@
-# simplecov must be loaded before any of target code
+# simplecov must be loaded before any of target code is loaded
 if ENV['SIMPLE_COV']
   require 'simplecov'
   if defined?(SimpleCov::SourceFile)
