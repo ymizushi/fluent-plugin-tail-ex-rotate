@@ -17,9 +17,9 @@ rake test
 ## Setting
 
 The setting of fluent-plugin-tail-ex-rotate is roughly the same with in_tail built-in plugin.
-A defference between fluent-plugin-tail-ex-rotate and in_tail built-in plugin setting is :expand_rotate_time attribute.
+Difference between fluent-plugin-tail-ex-rotate and in_tail built-in plugin setting are :expand_rotate_time attribute.
 
-:expand_rotate_time attribute should be set number of seconds.
+:expand_rotate_time attribute must be set number of seconds.
 
 For example,
 ```xml
