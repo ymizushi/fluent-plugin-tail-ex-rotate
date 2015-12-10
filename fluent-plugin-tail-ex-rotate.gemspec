@@ -21,5 +21,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency("fluentd", [">= 0.12.7"])
 
   gem.add_development_dependency("bundler", "~> 1.3")
+  gem.add_development_dependency("test-unit")
   gem.add_development_dependency("rake", [">= 0.9.2"])
 end

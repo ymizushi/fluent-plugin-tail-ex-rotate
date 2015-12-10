@@ -11,6 +11,7 @@ gem install fluent-plugin-tail-ex-rotate
 ## Test
 
 ```sh
+bundle install
 rake test
 ```
 
