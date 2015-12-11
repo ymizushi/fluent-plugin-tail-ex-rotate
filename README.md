@@ -1,4 +1,5 @@
 # fluent-plugin-tail-ex-rotate
+[![Build Status](https://travis-ci.org/dwango/fluent-plugin-tail-ex-rotate.png?branch=master)](https://travis-ci.org/dwango/fluent-plugin-tail-ex-rotate)
 
 fluent-plugin-tail-ex-rotate is a fluentd plugin to delay file lotation time.
 
@@ -11,6 +12,7 @@ gem install fluent-plugin-tail-ex-rotate
 ## Test
 
 ```sh
+bundle install
 rake test
 ```
 

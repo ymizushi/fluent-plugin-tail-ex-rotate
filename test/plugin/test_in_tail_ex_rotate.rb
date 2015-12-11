@@ -2,6 +2,7 @@ require_relative '../helper'
 require 'fluent/test'
 require 'net/http'
 require 'flexmock'
+require 'flexmock/test_unit'
 require 'fluent/plugin/in_tail_ex_rotate'
 
 class TailExRotateInputTest < Test::Unit::TestCase
@@ -31,6 +32,43 @@ class TailExRotateInputTest < Test::Unit::TestCase
     format /(?<message>.*)/
   ]
 
+  # * path test
+  # TODO: Clean up tests
+  EX_RORATE_WAIT = 0
+
+  EX_CONFIG = %[
+    tag tail
+    path test/plugin/*/%Y/%m/%Y%m%d-%H%M%S.log,test/plugin/data/log/**/*.log
+    format none
+    pos_file #{TMP_DIR}/tail.pos
+    read_from_head true
+    refresh_interval 30
+    rotate_wait #{EX_RORATE_WAIT}s
+  ]
+  EX_PATHS = [
+    'test/plugin/data/2010/01/20100102-030405.log',
+    'test/plugin/data/log/foo/bar.log',
+    'test/plugin/data/log/test.log'
+  ]
+
+
+  EX_CONFIG_FOR_ROTATE = %[
+    tag tail
+    path test/plugin/*/%Y/%m/%Y%m%d-%H%M%S.log,test/plugin/data/log/**/*.log
+    format none
+    pos_file #{TMP_DIR}/tail.pos
+    read_from_head true
+    refresh_interval 30
+    rotate_wait #{EX_RORATE_WAIT}s
+    expand_rotate_time 18000s
+  ]
+
+  EX_PATHS_FOR_ROATE = [
+    'test/plugin/data/2014/12/20141224-000000.log',
+    'test/plugin/data/log/foo/bar.log',
+    'test/plugin/data/log/test.log'
+  ]
+
   def create_driver(conf = SINGLE_LINE_CONFIG, use_common_conf = true)
     config = use_common_conf ? COMMON_CONFIG + conf : conf
     Fluent::Test::InputTestDriver.new(Fluent::TailExRotateInput).configure(config)
@@ -42,10 +80,10 @@ class TailExRotateInputTest < Test::Unit::TestCase
     assert_equal "t1", d.instance.tag
     assert_equal 2, d.instance.rotate_wait
     assert_equal "#{TMP_DIR}/tail.pos", d.instance.pos_file
-    assert_equal 18000, d.instance.expand_rotate_time
+    assert_equal 1000, d.instance.read_lines_limit
   end
 
-  # TODO: Should use much better approach instead of sleep
+  # TODO: Should using more better approach instead of sleep wait
 
   def test_emit
     File.open("#{TMP_DIR}/tail.txt", "w") {|f|
@@ -69,6 +107,30 @@ class TailExRotateInputTest < Test::Unit::TestCase
     assert_equal(true, emits.length > 0)
     assert_equal({"message" => "test3"}, emits[0][2])
     assert_equal({"message" => "test4"}, emits[1][2])
+    assert_equal(1, d.emit_streams.size)
+  end
+
+  data('1' => [1, 2], '10' => [10, 1])
+  def test_emit_with_read_lines_limit(data)
+    limit, num_emits = data
+    d = create_driver(CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG + "read_lines_limit #{limit}")
+    msg = 'test' * 500 # in_tail reads 2048 bytes at once.
+
+    d.run do
+      sleep 1
+
+      File.open("#{TMP_DIR}/tail.txt", "a") {|f|
+        f.puts msg
+        f.puts msg
+      }
+      sleep 1
+    end
+
+    emits = d.emits
+    assert_equal(true, emits.length > 0)
+    assert_equal({"message" => msg}, emits[0][2])
+    assert_equal({"message" => msg}, emits[1][2])
+    assert_equal(num_emits, d.emit_streams.size)
   end
 
   def test_emit_with_read_from_head
@@ -367,56 +429,17 @@ class TailExRotateInputTest < Test::Unit::TestCase
     assert_equal({"var1" => "foo 2", "var2" => "bar 2", "var3" => "baz 2"}, emits[1][2])
   end
 
-  # * path test
-  # TODO: Cleanup tests
-  EX_RORATE_WAIT = 0
-
-  EX_CONFIG = %[
-    tag tail
-    path test/plugin/*/%Y/%m/%Y%m%d-%H%M%S.log,test/plugin/data/log/**/*.log
-    format none
-    pos_file #{TMP_DIR}/tail.pos
-    read_from_head true
-    refresh_interval 30
-    rotate_wait #{EX_RORATE_WAIT}s
-  ]
-  EX_PATHS = [
-    'test/plugin/data/2010/01/20100102-030405.log',
-    'test/plugin/data/log/foo/bar.log',
-    'test/plugin/data/log/test.log'
-  ]
-
-  EX_CONFIG_FOR_ROTATE = %[
-    tag tail
-    path test/plugin/*/%Y/%m/%Y%m%d-%H%M%S.log,test/plugin/data/log/**/*.log
-    format none
-    pos_file #{TMP_DIR}/tail.pos
-    read_from_head true
-    refresh_interval 30
-    rotate_wait #{EX_RORATE_WAIT}s
-    expand_rotate_time 18000s
-  ]
-
-  EX_PATHS_FOR_ROATE = [
-    'test/plugin/data/2014/12/20141224-000000.log',
-    'test/plugin/data/log/foo/bar.log',
-    'test/plugin/data/log/test.log'
-  ]
-
   def test_expand_paths
     plugin = create_driver(EX_CONFIG, false).instance
     flexstub(Time) do |timeclass|
       timeclass.should_receive(:now).with_no_args.and_return(Time.new(2010, 1, 2, 3, 4, 5))
       assert_equal EX_PATHS, plugin.expand_paths.sort
     end
-  end
 
-  def test_expand_paths_for_ex_rotate
-    plugin = create_driver(EX_CONFIG_FOR_ROTATE, false).instance
-    flexstub(Time) do |timeclass|
-      timeclass.should_receive(:now).with_no_args.and_return(Time.new(2014, 12, 24, 5, 0, 0))
-      assert_equal EX_PATHS_FOR_ROATE, plugin.expand_paths.sort
-    end
+    # Test exclusion
+    exclude_config = EX_CONFIG + "  exclude_path [\"#{EX_PATHS.last}\"]"
+    plugin = create_driver(exclude_config, false).instance
+    assert_equal EX_PATHS - [EX_PATHS.last], plugin.expand_paths.sort
   end
 
   def test_refresh_watchers
@@ -432,7 +455,7 @@ class TailExRotateInputTest < Test::Unit::TestCase
 
       flexstub(Fluent::TailExRotateInput::TailWatcher) do |watcherclass|
         EX_PATHS.each do |path|
-          watcherclass.should_receive(:new).with(path, EX_RORATE_WAIT, Fluent::TailExRotateInput::FilePositionEntry, any, true, any, any).once.and_return do
+          watcherclass.should_receive(:new).with(path, EX_RORATE_WAIT, Fluent::TailExRotateInput::FilePositionEntry, any, true, 1000, any, any).once.and_return do
             flexmock('TailWatcher') { |watcher|
               watcher.should_receive(:attach).once
               watcher.should_receive(:unwatched=).zero_or_more_times
@@ -448,7 +471,7 @@ class TailExRotateInputTest < Test::Unit::TestCase
       end
 
       flexstub(Fluent::TailExRotateInput::TailWatcher) do |watcherclass|
-        watcherclass.should_receive(:new).with('test/plugin/data/2010/01/20100102-030406.log', EX_RORATE_WAIT, Fluent::TailExRotateInput::FilePositionEntry, any, true, any, any).once.and_return do
+        watcherclass.should_receive(:new).with('test/plugin/data/2010/01/20100102-030406.log', EX_RORATE_WAIT, Fluent::TailExRotateInput::FilePositionEntry, any, true, 1000, any, any).once.and_return do
           flexmock('TailWatcher') do |watcher|
             watcher.should_receive(:attach).once
             watcher.should_receive(:unwatched=).zero_or_more_times
@@ -523,16 +546,15 @@ class TailExRotateInputTest < Test::Unit::TestCase
     end
   end
 
-  # Ensure that 
-  # (1) no fatal exception is raised when a file is missing and 
-  # (2) existent files are still tailed as expected.
+  # Ensure that no fatal exception is raised when a file is missing and that
+  # files that do exist are still tailed as expected.
   def test_missing_file
     File.open("#{TMP_DIR}/tail.txt", "w") {|f|
       f.puts "test1"
       f.puts "test2"
     }
 
-    # Try two different configs - one with read_from_head and one without
+    # Try two different configs - one with read_from_head and one without,
     # since their interactions with the filesystem differ.
     config1 = %[
       tag t1
@@ -556,6 +578,14 @@ class TailExRotateInputTest < Test::Unit::TestCase
       assert_equal(2, emits.length)
       assert_equal({"message" => "test3"}, emits[0][2])
       assert_equal({"message" => "test4"}, emits[1][2])
+    end
+  end
+
+  def test_expand_paths_for_ex_rotate
+    plugin = create_driver(EX_CONFIG_FOR_ROTATE, false).instance
+    flexstub(Time) do |timeclass|
+      timeclass.should_receive(:now).with_no_args.and_return(Time.new(2014, 12, 24, 5, 0, 0))
+      assert_equal EX_PATHS_FOR_ROATE, plugin.expand_paths.sort
     end
   end
 end
