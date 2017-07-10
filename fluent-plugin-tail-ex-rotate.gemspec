@@ -5,10 +5,10 @@ Gem::Specification.new do |gem|
   gem.version       = "0.0.4"
 
   gem.authors       = ["Yuta Mizushima"]
-  gem.email         = ["yuta_mizushima@dwango.co.jp"]
+  gem.email         = ["mizushima@gmail.com"]
   gem.description   = %q{Extension of in_tail plugin to customize log rotate timing.}
   gem.summary       = %q{customize log rotate timing}
-  gem.homepage      = "https://github.com/dwango/fluent-plugin-tail-ex-rotate"
+  gem.homepage      = "https://github.com/ymizushi/fluent-plugin-tail-ex-rotate"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
