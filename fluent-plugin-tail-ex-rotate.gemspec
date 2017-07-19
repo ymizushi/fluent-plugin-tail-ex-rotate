@@ -22,7 +22,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency("fluentd", ["~> 0.14"])
 
   gem.add_development_dependency("bundler", "~> 1.3")
-  gem.add_development_dependency("test-unit-rr", "~> 0")
+  gem.add_development_dependency("test-unit-rr", "~> 1.3")
   gem.add_development_dependency("flexmock", "~> 0")
   gem.add_development_dependency("rake", ["~> 0.9"])
 end
