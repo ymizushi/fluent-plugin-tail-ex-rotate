@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fluent-plugin-tail-ex-rotate (0.1.0)
+    fluent-plugin-tail-ex-rotate (0.1.1)
       fluentd (~> 0.14)
 
 GEM
