@@ -2,7 +2,7 @@ require File.expand_path('../lib/fluent/version', __FILE__)
 
 Gem::Specification.new do |gem|
   gem.name          = "fluent-plugin-tail-ex-rotate"
-  gem.version       = "0.1.0"
+  gem.version       = "0.1.1"
 
   gem.authors       = ["Yuta Mizushima"]
   gem.licenses       = ["MIT"]
