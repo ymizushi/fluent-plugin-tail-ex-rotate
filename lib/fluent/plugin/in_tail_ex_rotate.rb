@@ -1,7 +1,19 @@
-require 'fluent/plugin/in_tail'
+require 'cool.io'
 
-module Fluent
-  class TailExRotateInput < Fluent::NewTailInput
+require 'fluent/plugin/input'
+require 'fluent/config/error'
+require 'fluent/event'
+require 'fluent/plugin/buffer'
+require 'fluent/plugin/parser_multiline'
+
+if Fluent.windows?
+  require_relative 'file_wrapper'
+else
+  Fluent::FileWrapper = File
+end
+
+module Fluent::Plugin
+  class TailExRotateInput < Fluent::Plugin::TailInput
     Fluent::Plugin.register_input('tail_ex_rotate', self)
     config_param :expand_rotate_time, :time, :default => 0
 
@@ -9,15 +21,24 @@ module Fluent
       date = Time.now - @expand_rotate_time
       paths = []
 
-      excluded = @exclude_path.map { |path| path = date.strftime(path); path.include?('*') ? Dir.glob(path) : path }.flatten.uniq
       @paths.each { |path|
         path = date.strftime(path)
         if path.include?('*')
           paths += Dir.glob(path).select { |p|
-            if File.readable?(p)
-              true
+            is_file = !File.directory?(p)
+            if File.readable?(p) && is_file
+              if @limit_recently_modified && File.mtime(p) < (date - @limit_recently_modified)
+                false
+              else
+                true
+              end
             else
-              log.warn "#{p} unreadable. It is excluded and would be examined next time."
+              if is_file
+                unless @ignore_list.include?(path)
+                  log.warn "#{p} unreadable. It is excluded and would be examined next time."
+                  @ignore_list << path if @ignore_repeated_permission_error
+                end
+              end
               false
             end
           }
@@ -26,6 +47,7 @@ module Fluent
           paths << path
         end
       }
+      excluded = @exclude_path.map { |path| path = date.strftime(path); path.include?('*') ? Dir.glob(path) : path }.flatten.uniq
       paths - excluded
     end
   end
